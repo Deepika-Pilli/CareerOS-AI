@@ -2,13 +2,18 @@
 
 import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
+import { analyzeResumeWithDelay, type ResumeAnalysis } from "@/lib/analyze-resume";
+import { syncResumeAnalysis } from "@/lib/dashboard-storage";
 import { extractTextFromPdf } from "@/lib/extract-pdf-text";
+import ResumeAnalysisResults from "./ResumeAnalysisResults";
 
 export default function ResumeAnalyzer() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -20,22 +25,43 @@ export default function ResumeAnalyzer() {
 
     setError(null);
     setExtractedText(null);
+    setAnalysis(null);
     setFileName(file.name);
-    setIsLoading(true);
+    setIsExtracting(true);
 
     try {
       const text = await extractTextFromPdf(file);
       if (!text) {
         setError("No text could be extracted from this PDF. It may be image-only or scanned.");
+        setFileName(null);
         return;
       }
       setExtractedText(text);
     } catch {
       setError("Failed to read the PDF. Please try another file.");
+      setFileName(null);
     } finally {
-      setIsLoading(false);
+      setIsExtracting(false);
     }
   }, []);
+
+  const handleAnalyze = async () => {
+    if (!extractedText) return;
+
+    setError(null);
+    setAnalysis(null);
+    setIsAnalyzing(true);
+
+    try {
+      const result = await analyzeResumeWithDelay(extractedText);
+      setAnalysis(result);
+      syncResumeAnalysis(result.atsScore, result.skillsFound.length);
+    } catch {
+      setError("Analysis failed. Please try again.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -52,9 +78,12 @@ export default function ResumeAnalyzer() {
   const handleClear = () => {
     setFileName(null);
     setExtractedText(null);
+    setAnalysis(null);
     setError(null);
     if (inputRef.current) inputRef.current.value = "";
   };
+
+  const readyToAnalyze = extractedText && !isExtracting && !isAnalyzing;
 
   return (
     <div className="relative min-h-full overflow-hidden bg-slate-950 text-white">
@@ -64,7 +93,7 @@ export default function ResumeAnalyzer() {
         <div className="absolute bottom-0 right-0 h-[400px] w-[600px] rounded-full bg-indigo-500/20 blur-[100px]" />
       </div>
 
-      <header className="relative z-10 mx-auto flex max-w-4xl items-center justify-between px-6 py-6 sm:px-8">
+      <header className="relative z-10 mx-auto flex max-w-5xl items-center justify-between px-6 py-6 sm:px-8">
         <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 shadow-lg shadow-violet-500/25">
             <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -73,31 +102,27 @@ export default function ResumeAnalyzer() {
           </div>
           <span className="text-lg font-semibold tracking-tight">CareerOS AI</span>
         </Link>
-        <Link
-          href="/"
-          className="text-sm text-slate-400 transition-colors hover:text-white"
-        >
+        <Link href="/" className="text-sm text-slate-400 transition-colors hover:text-white">
           ← Back to home
         </Link>
       </header>
 
-      <main className="relative z-10 mx-auto max-w-4xl px-6 pb-16 sm:px-8">
+      <main className="relative z-10 mx-auto max-w-5xl px-6 pb-16 sm:px-8">
         <div className="mb-10 text-center sm:text-left">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-slate-300">
-            Resume Analyzer
+            AI Resume Review
           </div>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Upload your{" "}
+            Analyze your{" "}
             <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
               resume
             </span>
           </h1>
           <p className="mt-3 max-w-xl text-slate-400">
-            Upload a PDF to extract and preview the text content from your resume.
+            Upload a PDF, then run an AI-powered ATS review with skill detection and actionable feedback.
           </p>
         </div>
 
-        {/* Upload zone */}
         <div
           role="button"
           tabIndex={0}
@@ -110,12 +135,12 @@ export default function ResumeAnalyzer() {
           }}
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
-          onClick={() => inputRef.current?.click()}
+          onClick={() => !isAnalyzing && inputRef.current?.click()}
           className={`cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition-all ${
             isDragging
               ? "border-violet-400 bg-violet-500/10"
               : "border-white/15 bg-white/[0.03] hover:border-violet-500/40 hover:bg-white/[0.05]"
-          }`}
+          } ${isAnalyzing ? "pointer-events-none opacity-60" : ""}`}
         >
           <input
             ref={inputRef}
@@ -140,7 +165,6 @@ export default function ResumeAnalyzer() {
           <p className="mt-2 text-sm text-slate-500">or click to browse · PDF only</p>
         </div>
 
-        {/* File name */}
         {fileName && (
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4">
             <div className="flex min-w-0 items-center gap-3">
@@ -150,9 +174,7 @@ export default function ResumeAnalyzer() {
                 </svg>
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Uploaded file
-                </p>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Uploaded file</p>
                 <p className="truncate font-medium text-white">{fileName}</p>
               </div>
             </div>
@@ -162,15 +184,15 @@ export default function ResumeAnalyzer() {
                 e.stopPropagation();
                 handleClear();
               }}
-              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-400 transition-colors hover:border-white/20 hover:text-white"
+              disabled={isAnalyzing}
+              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-400 transition-colors hover:border-white/20 hover:text-white disabled:opacity-50"
             >
               Clear
             </button>
           </div>
         )}
 
-        {/* Loading */}
-        {isLoading && (
+        {isExtracting && (
           <div className="mt-6 flex items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] py-8 text-slate-400">
             <svg className="h-5 w-5 animate-spin text-violet-400" viewBox="0 0 24 24" fill="none">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -180,31 +202,78 @@ export default function ResumeAnalyzer() {
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               />
             </svg>
-            Extracting text from PDF…
+            Reading PDF…
           </div>
         )}
 
-        {/* Error */}
+        {readyToAnalyze && !analysis && (
+          <div className="mt-6 flex justify-center sm:justify-start">
+            <button
+              type="button"
+              onClick={() => void handleAnalyze()}
+              className="group inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-violet-600/30 transition-all hover:from-blue-500 hover:to-violet-500 hover:shadow-violet-500/40"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
+                />
+              </svg>
+              Analyze Resume
+            </button>
+          </div>
+        )}
+
+        {isAnalyzing && (
+          <div className="mt-8 rounded-2xl border border-violet-500/30 bg-gradient-to-br from-blue-600/10 to-violet-600/10 p-10">
+            <div className="flex flex-col items-center text-center">
+              <div className="relative mb-6 h-16 w-16">
+                <div className="absolute inset-0 animate-ping rounded-full bg-violet-500/20" />
+                <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-600">
+                  <svg className="h-8 w-8 animate-pulse text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <p className="text-lg font-medium text-white">Analyzing your resume…</p>
+              <p className="mt-2 text-sm text-slate-400">
+                Calculating ATS score, detecting skills, and generating recommendations
+              </p>
+              <div className="mt-6 flex gap-1.5">
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="h-2 w-2 animate-bounce rounded-full bg-violet-400"
+                    style={{ animationDelay: `${i * 150}ms` }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm text-red-300">
             {error}
           </div>
         )}
 
-        {/* Extracted text */}
-        {extractedText && !isLoading && (
-          <div className="mt-8">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">Extracted text</h2>
-              <span className="text-sm text-slate-500">
-                {extractedText.length.toLocaleString()} characters
-              </span>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-xl shadow-violet-900/10 backdrop-blur-sm">
-              <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-300">
-                {extractedText}
-              </pre>
-            </div>
+        {analysis && !isAnalyzing && <ResumeAnalysisResults analysis={analysis} />}
+
+        {readyToAnalyze && analysis && (
+          <div className="mt-6 flex justify-center sm:justify-start">
+            <button
+              type="button"
+              onClick={() => void handleAnalyze()}
+              className="rounded-lg border border-white/10 px-5 py-2.5 text-sm text-slate-400 transition-colors hover:border-violet-500/40 hover:text-white"
+            >
+              Re-analyze resume
+            </button>
           </div>
         )}
       </main>
