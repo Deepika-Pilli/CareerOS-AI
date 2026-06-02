@@ -2,17 +2,15 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
-  DASHBOARD_STORAGE_KEY,
-  DASHBOARD_UPDATED_EVENT,
   formatActivityTime,
   formatActivityTimestamp,
-  getDashboardData,
   getRecommendedActions,
   updateProfile,
   type DashboardActivity,
-  type DashboardData,
 } from "@/lib/dashboard-storage";
+import { getDashboardData, type DashboardData } from "@/lib/dashboard-api";
 
 const QUICK_NAV = [
   { label: "Resume Analyzer", href: "/resume", icon: "document" },
@@ -126,44 +124,83 @@ function formatStat(value: number | null, suffix = ""): string {
 }
 
 export default function Dashboard() {
+  const { logout, isAuthenticated, isLoading: authLoading } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [goalInput, setGoalInput] = useState("");
 
-  const refresh = useCallback(() => {
-    setData(getDashboardData());
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      window.location.href = "/login";
+    }
+  }, [isAuthenticated, authLoading]);
+
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const dashboardData = await getDashboardData();
+      setData(dashboardData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    refresh();
-
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === DASHBOARD_STORAGE_KEY) refresh();
-    };
-    const onDashboardUpdated = () => refresh();
-    const onFocus = () => refresh();
-
-    window.addEventListener("storage", onStorage);
-    window.addEventListener(DASHBOARD_UPDATED_EVENT, onDashboardUpdated);
-    window.addEventListener("focus", onFocus);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener(DASHBOARD_UPDATED_EVENT, onDashboardUpdated);
-      window.removeEventListener("focus", onFocus);
-    };
-  }, [refresh]);
+    if (isAuthenticated) {
+      fetchDashboardData();
+    }
+  }, [isAuthenticated, fetchDashboardData]);
 
   const saveProfile = () => {
     updateProfile({ userName: nameInput.trim() || "Career Explorer", currentGoal: goalInput.trim() || "Land your dream tech role" });
     setEditingProfile(false);
-    refresh();
+    fetchDashboardData();
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+        <div className="text-center">
+          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-4 border-violet-500/30 border-t-violet-500 mx-auto" />
+          <p className="text-slate-400">Loading dashboard…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white px-6">
+        <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-red-500/5 p-8 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20">
+            <svg className="h-8 w-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+          </div>
+          <h2 className="mb-2 text-xl font-semibold text-white">Failed to load dashboard</h2>
+          <p className="mb-6 text-slate-400">{error}</p>
+          <button
+            type="button"
+            onClick={fetchDashboardData}
+            className="rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-6 py-3 font-semibold text-white shadow-lg shadow-violet-600/30 transition-all hover:from-blue-500 hover:to-violet-500 hover:shadow-violet-500/40"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!data) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">
-        Loading dashboard…
+        No dashboard data available
       </div>
     );
   }
@@ -194,6 +231,13 @@ export default function Dashboard() {
               Home
             </Link>
             <span className="font-medium text-violet-400">Dashboard</span>
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-slate-300 backdrop-blur-sm transition-colors hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
+            >
+              Logout
+            </button>
           </nav>
         </div>
       </header>

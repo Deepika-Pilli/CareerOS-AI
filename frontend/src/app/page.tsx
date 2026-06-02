@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
 import type React from "react";
 
 const features: {
@@ -54,6 +57,16 @@ const features: {
 ];
 
 export default function Home() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+        Loading...
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-full overflow-hidden bg-slate-950 text-white">
       {/* Background gradients */}
@@ -85,12 +98,29 @@ export default function Home() {
           <a href="#features" className="hidden transition-colors hover:text-white sm:inline">
             Features
           </a>
-          <Link
-            href="/dashboard"
-            className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 font-medium text-white backdrop-blur-sm transition-colors hover:border-violet-500/40 hover:bg-white/10"
-          >
-            Dashboard
-          </Link>
+          {isAuthenticated ? (
+            <Link
+              href="/dashboard"
+              className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 font-medium text-white backdrop-blur-sm transition-colors hover:border-violet-500/40 hover:bg-white/10"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 font-medium text-white backdrop-blur-sm transition-colors hover:border-violet-500/40 hover:bg-white/10"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/register"
+                className="rounded-lg bg-gradient-to-r from-blue-600 to-violet-600 px-4 py-2 font-medium text-white shadow-lg shadow-violet-600/30 transition-all hover:from-blue-500 hover:to-violet-500 hover:shadow-violet-500/40"
+              >
+                Get Started
+              </Link>
+            </>
+          )}
         </nav>
       </header>
 
@@ -112,10 +142,10 @@ export default function Home() {
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
-              href="/dashboard"
+              href={isAuthenticated ? "/dashboard" : "/register"}
               className="group inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-violet-600/30 transition-all hover:from-blue-500 hover:to-violet-500 hover:shadow-violet-500/40"
             >
-              Get Started
+              {isAuthenticated ? "Go to Dashboard" : "Get Started"}
               <svg
                 className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
                 fill="none"
