@@ -4,13 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 import {
   CURRENT_STATUS_OPTIONS,
-  generateRoadmapWithDelay,
   TARGET_ROLE_OPTIONS,
   type CareerRoadmap,
   type CurrentStatus,
   type TargetRole,
 } from "@/lib/generate-roadmap";
-import { syncRoadmapGeneration } from "@/lib/dashboard-storage";
+import { generateRoadmap } from "@/lib/roadmap-api";
 import RoadmapResults from "./RoadmapResults";
 
 export default function RoadmapGenerator() {
@@ -26,9 +25,12 @@ export default function RoadmapGenerator() {
     setIsGenerating(true);
 
     try {
-      const result = await generateRoadmapWithDelay(currentStatus, targetRole);
-      setRoadmap(result);
-      syncRoadmapGeneration(result.targetRole, result.estimatedTimeline);
+      const response = await generateRoadmap(currentStatus, targetRole);
+      if (response.success && response.data) {
+        setRoadmap(response.data);
+      } else {
+        throw new Error(response.message || "Failed to generate roadmap");
+      }
     } catch {
       setError("Failed to generate roadmap. Please try again.");
     } finally {
