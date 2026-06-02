@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import {
-  analyzeSkillGapWithDelay,
   TARGET_ROLE_OPTIONS,
   type SkillGapAnalysis,
   type TargetRole,
 } from "@/lib/analyze-skill-gap";
-import { syncSkillGapAnalysis } from "@/lib/dashboard-storage";
+import { authStorage } from "@/lib/auth";
 import SkillGapResults from "./SkillGapResults";
 
 const PLACEHOLDER_SKILLS =
@@ -27,14 +26,36 @@ export default function SkillGapAnalyzer() {
       return;
     }
 
+    const token = authStorage.getToken();
+    if (!token) {
+      setError("Please log in to analyze your skill gap.");
+      return;
+    }
+
     setError(null);
     setAnalysis(null);
     setIsAnalyzing(true);
 
     try {
-      const result = await analyzeSkillGapWithDelay(targetRole, currentSkills);
-      setAnalysis(result);
-      syncSkillGapAnalysis(result.matchPercent, result.targetRole);
+      const response = await fetch("http://localhost:5000/api/skill-gap/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          targetRole,
+          currentSkills,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Analysis failed");
+      }
+
+      setAnalysis(data.data);
     } catch {
       setError("Analysis failed. Please try again.");
     } finally {
