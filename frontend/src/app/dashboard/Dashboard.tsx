@@ -7,9 +7,11 @@ import {
   formatActivityTime,
   formatActivityTimestamp,
   getRecommendedActions,
+  getDashboardData,
+  updateProfile,
   type DashboardActivity,
-} from "@/lib/dashboard-storage";
-import { getDashboardData, updateProfile, type DashboardData } from "@/lib/dashboard-api";
+  type DashboardData,
+} from "@/lib/dashboard-api";
 
 const QUICK_NAV = [
   { label: "Resume Analyzer", href: "/resume", icon: "document" },

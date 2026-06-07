@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { forgotPassword } from "@/lib/auth";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -15,11 +16,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      // Mock backend call for now
-      // In production, this would call the actual backend API
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      
-      // Simulate success
+      await forgotPassword(email);
       setSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send reset email. Please try again.");
@@ -115,30 +112,15 @@ export default function ForgotPasswordPage() {
                     Check your email
                   </h1>
                   <p className="mt-2 text-slate-400">
-                    We've sent a password reset link to <span className="font-medium text-white">{email}</span>.
+                    If an account with that email exists, we've sent a password reset link to it.
                   </p>
                 </div>
 
                 <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">
-                  Please check your inbox and follow the instructions to reset your password.
+                  Please check your inbox and follow the instructions to reset your password. The link expires in 1 hour.
                 </div>
 
                 <div className="mt-6 text-center text-sm text-slate-400">
-                  Didn't receive the email?{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSuccess(false);
-                      handleSubmit(new Event("submit") as any);
-                    }}
-                    disabled={loading}
-                    className="font-medium text-violet-400 transition-colors hover:text-violet-300 disabled:opacity-50"
-                  >
-                    Resend
-                  </button>
-                </div>
-
-                <div className="mt-4 text-center text-sm text-slate-400">
                   <Link href="/login" className="font-medium text-violet-400 transition-colors hover:text-violet-300">
                     Back to sign in
                   </Link>

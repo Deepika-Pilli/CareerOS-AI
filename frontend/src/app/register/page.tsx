@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, login, isAuthenticated, isLoading } = useAuth();
+  const { register, isAuthenticated, isLoading } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,8 +27,6 @@ export default function RegisterPage() {
 
     try {
       await register({ name, email, password });
-      // After successful registration, automatically login
-      await login({ email, password });
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed. Please try again.");

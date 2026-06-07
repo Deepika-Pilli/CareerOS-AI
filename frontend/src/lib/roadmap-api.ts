@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:5000/api/roadmap";
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/roadmap`;
 
 export type CurrentStatus = "Student" | "Fresher";
 export type TargetRole = "Frontend Developer" | "Full Stack Developer" | "Data Analyst" | "AI Engineer" | "Cybersecurity Analyst";

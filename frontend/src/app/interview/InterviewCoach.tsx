@@ -14,7 +14,6 @@ import {
   generateInterviewAPI,
   submitInterviewAPI,
 } from "@/lib/interview-api";
-import { syncInterviewCompletion } from "@/lib/dashboard-storage";
 import InterviewResults from "./InterviewResults";
 
 type Phase = "setup" | "interview" | "results";
@@ -58,7 +57,6 @@ export default function InterviewCoach() {
       }
       const evaluation = await submitInterviewAPI(interviewId, answers);
       setResult(evaluation);
-      syncInterviewCompletion(evaluation.overallInterviewScore, evaluation.role);
       setPhase("results");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to evaluate answers. Please try again.");

@@ -1,6 +1,6 @@
 import { authStorage } from "./auth";
 
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api`;
 
 export type DashboardProfile = {
   userName: string;
@@ -111,4 +111,117 @@ export async function updateStats(stats: Partial<DashboardStats>): Promise<Dashb
   }
 
   return result.data;
+}
+
+// ---------------------------------------------------------------------------
+// Utility functions (consolidated from dashboard-storage.ts)
+// ---------------------------------------------------------------------------
+
+export const ACTIVITY_TITLES = {
+  resume: "Resume analyzed",
+  "skill-gap": "Skill gap analyzed",
+  interview: "Interview completed",
+  roadmap: "Roadmap generated",
+} as const;
+
+export function formatActivityTime(timestamp: number): string {
+  const diff = Date.now() - timestamp;
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(timestamp).toLocaleDateString();
+}
+
+export function formatActivityTimestamp(timestamp: number): string {
+  return new Date(timestamp).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+export function getRecommendedActions(stats: DashboardStats): { label: string; href: string; reason: string }[] {
+  const actions: { label: string; href: string; reason: string; priority: number }[] = [];
+
+  if (stats.atsScore === null) {
+    actions.push({
+      label: "Analyze your resume",
+      href: "/resume",
+      reason: "Get your ATS score and improvement tips",
+      priority: 1,
+    });
+  } else if (stats.atsScore < 70) {
+    actions.push({
+      label: "Improve resume ATS score",
+      href: "/resume",
+      reason: `Current ATS score is ${stats.atsScore}% — aim for 75+`,
+      priority: 2,
+    });
+  }
+
+  if (stats.skillMatchPercent === null) {
+    actions.push({
+      label: "Run skill gap analysis",
+      href: "/skill-gap",
+      reason: "See which skills you need for your target role",
+      priority: 1,
+    });
+  } else if (stats.skillMatchPercent < 60) {
+    actions.push({
+      label: "Close skill gaps",
+      href: "/skill-gap",
+      reason: `Skill match is ${stats.skillMatchPercent}% — review learning priorities`,
+      priority: 2,
+    });
+  }
+
+  if (stats.interviewScore === null) {
+    actions.push({
+      label: "Practice mock interview",
+      href: "/interview",
+      reason: "Build confidence with AI interview coaching",
+      priority: 3,
+    });
+  } else if (stats.interviewScore < 70) {
+    actions.push({
+      label: "Retake interview practice",
+      href: "/interview",
+      reason: `Interview score ${stats.interviewScore}% — practice weak areas`,
+      priority: 3,
+    });
+  }
+
+  if (stats.roadmapProgress === null) {
+    actions.push({
+      label: "Generate career roadmap",
+      href: "/roadmap",
+      reason: "Get a step-by-step plan for your target role",
+      priority: 4,
+    });
+  } else if (stats.roadmapProgress < 100) {
+    actions.push({
+      label: "Continue roadmap",
+      href: "/roadmap",
+      reason: `Roadmap ${stats.roadmapProgress}% — keep following your learning phases`,
+      priority: 4,
+    });
+  }
+
+  if (actions.length === 0) {
+    return [
+      {
+        label: "Review all tools",
+        href: "/resume",
+        reason: "Great progress! Fine-tune resume and interview answers",
+      },
+    ];
+  }
+
+  return actions
+    .sort((a, b) => a.priority - b.priority)
+    .slice(0, 4)
+    .map(({ label, href, reason }) => ({ label, href, reason }));
 }

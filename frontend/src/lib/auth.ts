@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:5000/api/auth";
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/auth`;
 
 export interface LoginRequest {
   email: string;
@@ -110,7 +110,56 @@ export async function register(credentials: RegisterRequest): Promise<AuthRespon
     body: JSON.stringify(credentials),
   });
 
-  return handleResponse(response);
+  const data = await handleResponse(response);
+
+  if (data.success && data.token && data.user) {
+    authStorage.setToken(data.token);
+    authStorage.setUser(data.user);
+  }
+
+  return data;
+}
+
+export async function forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE_URL}/forgot-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to send reset email");
+  }
+
+  return data;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  id: string;
+  password: string;
+}
+
+export async function resetPassword(credentials: ResetPasswordRequest): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE_URL}/reset-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(credentials),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to reset password");
+  }
+
+  return data;
 }
 
 export function logout(): void {

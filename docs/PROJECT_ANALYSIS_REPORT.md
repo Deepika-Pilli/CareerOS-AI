@@ -62,8 +62,8 @@
 
 | Issue | Location | Severity |
 |-------|----------|----------|
-| ~~**No auth middleware**~~ | `backend/middleware/authMiddleware.js` | ✅ FIXED - `protect` middleware created and applied to all protected routes |
-| **Register doesn't return token** | `authController.js:28-37` | 🟡 PENDING - register creates user but returns NO token, requiring a separate login call |
+| **No auth middleware** | `backend/middleware/authMiddleware.js` | ✅ **FIXED** - `protect` middleware created and applied to all protected routes |
+| ~~**Register doesn't return token**~~ | ~~`authController.js:28-37`~~ | ✅ **FIXED** - Backend already returned JWT. Frontend `auth.ts` now stores token+user on register. Register page no longer calls redundant login. |
 | **No token refresh** | Token expires in 7 days with no refresh mechanism | 🟡 MEDIUM |
 | **Forgot password page exists but no API** | `/forgot-password` route exists with no backend implementation | 🟢 LOW |
 
@@ -105,7 +105,6 @@
 
 | Priority | Issue | Reason |
 |----------|-------|--------|
-| **#5 🟡** | **Register doesn't return JWT token** | Forces an extra login API call after registration. UX inefficiency. |
 | **#6 🟡** | **Code duplication (frontend/backend)** | Interview, skill gap, and roadmap logic duplicated. Maintenance burden. |
 | **#7 🟡** | **CORS & Security headers** | No helmet, permissive CORS, no rate limiting. |
 | **#8 🟢** | **Forgot password page exists but no API** | Dead end for users. |
@@ -119,16 +118,16 @@
 2. ✅ **Issue #2 (Resume API)** → Resume analysis backend created: `backend/models/Resume.js`, `backend/controllers/resumeController.js`, `backend/routes/resumeRoutes.js`. Frontend updated to call backend API.
 3. ✅ **Issue #3 (Auth middleware)** → `backend/middleware/authMiddleware.js` created with JWT verification, applied to all dashboard and resume routes.
 4. ✅ **Issue #4 (Profile/Stats APIs)** → `PUT /api/dashboard/profile` and `PUT /api/dashboard/stats` endpoints created.
+5. ✅ **Issue #5 (Register auth flow)** → Frontend `auth.ts` `register()` now stores JWT + user in localStorage (matching `login()` behavior). Register page removed redundant `login()` call.
 
 ---
 
 ## Next Actions (Remaining Priority Order)
 
-1. **Fix Register returning JWT token** → Modify `authController.js` to return token on registration.
-2. **Code deduplication** → Deprecate frontend libs (`interview-coach.ts`, `generate-roadmap.ts`, `analyze-skill-gap.ts`, `analyze-resume.ts`) since backend controllers are authoritative.
-3. **Security hardening** → Add `helmet`, configure CORS with allowed origins, add rate limiting.
-4. **Forgot password** → Implement backend endpoint or remove dead page.
-5. **Deployment** → Add Docker configuration, build scripts.
+1. **Code deduplication** → Deprecate frontend libs (`interview-coach.ts`, `generate-roadmap.ts`, `analyze-skill-gap.ts`, `analyze-resume.ts`) since backend controllers are authoritative.
+2. **Security hardening** → Add `helmet`, configure CORS with allowed origins, add rate limiting.
+3. **Forgot password** → Implement backend endpoint or remove dead page.
+4. **Deployment** → Add Docker configuration, build scripts.
 
 ---
 
