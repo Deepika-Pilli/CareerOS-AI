@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
-import { analyzeResumeWithDelay, type ResumeAnalysis } from "@/lib/analyze-resume";
-import { syncResumeAnalysis } from "@/lib/dashboard-storage";
+import { analyzeResume, type ResumeAnalysis } from "@/lib/resume-api";
 import { extractTextFromPdf } from "@/lib/extract-pdf-text";
 import ResumeAnalysisResults from "./ResumeAnalysisResults";
 
@@ -53,9 +52,8 @@ export default function ResumeAnalyzer() {
     setIsAnalyzing(true);
 
     try {
-      const result = await analyzeResumeWithDelay(extractedText);
+      const result = await analyzeResume(extractedText, fileName ?? undefined);
       setAnalysis(result);
-      syncResumeAnalysis(result.atsScore, result.skillsFound.length);
     } catch {
       setError("Analysis failed. Please try again.");
     } finally {

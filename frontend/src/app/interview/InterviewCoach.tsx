@@ -3,15 +3,17 @@
 import Link from "next/link";
 import { useState } from "react";
 import {
-  DIFFICULTY_OPTIONS,
-  evaluateInterviewWithDelay,
-  generateQuestionsWithDelay,
   TARGET_ROLE_OPTIONS,
   type Difficulty,
   type InterviewQuestion,
   type InterviewResult,
   type TargetRole,
 } from "@/lib/interview-coach";
+import {
+  DIFFICULTY_OPTIONS,
+  generateInterviewAPI,
+  submitInterviewAPI,
+} from "@/lib/interview-api";
 import { syncInterviewCompletion } from "@/lib/dashboard-storage";
 import InterviewResults from "./InterviewResults";
 
@@ -26,6 +28,7 @@ export default function InterviewCoach() {
   const [result, setResult] = useState<InterviewResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [interviewId, setInterviewId] = useState<string | null>(null);
 
   const handleStart = async () => {
     setError(null);
@@ -34,11 +37,12 @@ export default function InterviewCoach() {
     setIsLoading(true);
 
     try {
-      const generated = await generateQuestionsWithDelay(role, difficulty);
+      const { interviewId: id, questions: generated } = await generateInterviewAPI(role, difficulty);
+      setInterviewId(id);
       setQuestions(generated);
       setPhase("interview");
-    } catch {
-      setError("Failed to generate questions. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate questions. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -49,12 +53,15 @@ export default function InterviewCoach() {
     setIsLoading(true);
 
     try {
-      const evaluation = await evaluateInterviewWithDelay(role, difficulty, questions, answers);
+      if (!interviewId) {
+        throw new Error("No interview session found");
+      }
+      const evaluation = await submitInterviewAPI(interviewId, answers);
       setResult(evaluation);
       syncInterviewCompletion(evaluation.overallInterviewScore, evaluation.role);
       setPhase("results");
-    } catch {
-      setError("Failed to evaluate answers. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to evaluate answers. Please try again.");
     } finally {
       setIsLoading(false);
     }

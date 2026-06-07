@@ -6,6 +6,8 @@ import authRoutes from "./routes/authRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import skillGapRoutes from "./routes/skillGapRoutes.js";
 import roadmapRoutes from "./routes/roadmapRoutes.js";
+import interviewRoutes from "./routes/interviewRoutes.js";
+import resumeRoutes from "./routes/resumeRoutes.js";
 
 const app = express();
 
@@ -16,6 +18,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/skill-gap", skillGapRoutes);
 app.use("/api/roadmap", roadmapRoutes);
+app.use("/api/interview", interviewRoutes);
+app.use("/api/resume", resumeRoutes);
 
 app.get("/", (req, res) => {
   res.send("CareerOS API Running...");

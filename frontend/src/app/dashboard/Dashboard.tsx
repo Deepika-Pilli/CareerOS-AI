@@ -7,10 +7,9 @@ import {
   formatActivityTime,
   formatActivityTimestamp,
   getRecommendedActions,
-  updateProfile,
   type DashboardActivity,
 } from "@/lib/dashboard-storage";
-import { getDashboardData, type DashboardData } from "@/lib/dashboard-api";
+import { getDashboardData, updateProfile, type DashboardData } from "@/lib/dashboard-api";
 
 const QUICK_NAV = [
   { label: "Resume Analyzer", href: "/resume", icon: "document" },
@@ -157,8 +156,12 @@ export default function Dashboard() {
     }
   }, [isAuthenticated, fetchDashboardData]);
 
-  const saveProfile = () => {
-    updateProfile({ userName: nameInput.trim() || "Career Explorer", currentGoal: goalInput.trim() || "Land your dream tech role" });
+  const saveProfile = async () => {
+    try {
+      await updateProfile({ userName: nameInput.trim() || "Career Explorer", currentGoal: goalInput.trim() || "Land your dream tech role" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update profile");
+    }
     setEditingProfile(false);
     fetchDashboardData();
   };

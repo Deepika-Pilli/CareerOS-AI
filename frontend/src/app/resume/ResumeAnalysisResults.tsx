@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { ResumeAnalysis } from "@/lib/analyze-resume";
+import type { ResumeAnalysis } from "@/lib/resume-api";
 
 type Props = {
   analysis: ResumeAnalysis;
