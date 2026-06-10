@@ -37,9 +37,8 @@ const userStatsSchema = new mongoose.Schema({
   },
 });
 
-userStatsSchema.pre("save", function (next) {
+userStatsSchema.pre("save", function () {
   this.updatedAt = Date.now();
-  next();
 });
 
 const UserStats = mongoose.model("UserStats", userStatsSchema);

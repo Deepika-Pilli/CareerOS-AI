@@ -32,9 +32,8 @@ const userProfileSchema = new mongoose.Schema({
   },
 });
 
-userProfileSchema.pre("save", function (next) {
+userProfileSchema.pre("save", function () {
   this.updatedAt = Date.now();
-  next();
 });
 
 const UserProfile = mongoose.model("UserProfile", userProfileSchema);
