@@ -1,3 +1,4 @@
+import { handleApiResponse } from "./auth";
 import {
   DIFFICULTY_OPTIONS,
   type Difficulty,
@@ -61,13 +62,7 @@ async function fetchWithAuth<T>(
     headers,
   });
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "An error occurred");
-  }
-
-  return data;
+  return handleApiResponse<T>(response);
 }
 
 export async function generateInterviewAPI(

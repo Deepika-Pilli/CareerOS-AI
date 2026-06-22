@@ -1,4 +1,4 @@
-import { authStorage } from "./auth";
+import { authStorage, handleApiResponse } from "./auth";
 
 const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api`;
 
@@ -47,15 +47,6 @@ export interface ResumeHistoryResponse {
   data?: ResumeHistoryItem[];
 }
 
-async function handleResponse<T>(response: Response): Promise<T> {
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Request failed");
-  }
-
-  return data;
-}
 
 function getAuthHeaders(): HeadersInit {
   const token = authStorage.getToken();
@@ -75,7 +66,7 @@ export async function analyzeResume(
     body: JSON.stringify({ extractedText, originalFileName }),
   });
 
-  const result = await handleResponse<AnalyzeResponse>(response);
+  const result = await handleApiResponse<AnalyzeResponse>(response);
 
   if (!result.success || !result.data) {
     throw new Error(result.message || "Failed to analyze resume");
@@ -90,7 +81,7 @@ export async function getLatestResume(): Promise<ResumeAnalysis | null> {
     headers: getAuthHeaders(),
   });
 
-  const result = await handleResponse<LatestResumeResponse>(response);
+  const result = await handleApiResponse<LatestResumeResponse>(response);
 
   if (!result.success) {
     throw new Error("Failed to fetch latest resume");
@@ -105,7 +96,7 @@ export async function getResumeHistory(): Promise<ResumeHistoryItem[]> {
     headers: getAuthHeaders(),
   });
 
-  const result = await handleResponse<ResumeHistoryResponse>(response);
+  const result = await handleApiResponse<ResumeHistoryResponse>(response);
 
   if (!result.success) {
     throw new Error("Failed to fetch resume history");

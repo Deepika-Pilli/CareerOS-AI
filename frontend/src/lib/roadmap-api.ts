@@ -1,3 +1,5 @@
+import { handleApiResponse } from "./auth";
+
 const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/roadmap`;
 
 export type CurrentStatus = "Student" | "Fresher";
@@ -53,11 +55,5 @@ export async function generateRoadmap(
     }),
   });
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Roadmap generation failed");
-  }
-
-  return data;
+  return handleApiResponse<RoadmapResponse>(response);
 }

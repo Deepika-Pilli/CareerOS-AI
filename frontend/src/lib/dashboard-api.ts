@@ -1,4 +1,4 @@
-import { authStorage } from "./auth";
+import { authStorage, handleApiResponse } from "./auth";
 
 const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api`;
 
@@ -48,15 +48,6 @@ export interface StatsUpdateResponse {
   data?: DashboardStats;
 }
 
-async function handleResponse<T>(response: Response): Promise<T> {
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Request failed");
-  }
-
-  return data;
-}
 
 function getAuthHeaders(): HeadersInit {
   const token = authStorage.getToken();
@@ -72,7 +63,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     headers: getAuthHeaders(),
   });
 
-  const result = await handleResponse<DashboardResponse>(response);
+  const result = await handleApiResponse<DashboardResponse>(response);
 
   if (!result.success || !result.data) {
     throw new Error(result.message || "Failed to fetch dashboard data");
@@ -88,7 +79,7 @@ export async function updateProfile(profile: Partial<DashboardProfile>): Promise
     body: JSON.stringify(profile),
   });
 
-  const result = await handleResponse<ProfileUpdateResponse>(response);
+  const result = await handleApiResponse<ProfileUpdateResponse>(response);
 
   if (!result.success || !result.data) {
     throw new Error(result.message || "Failed to update profile");
@@ -104,7 +95,7 @@ export async function updateStats(stats: Partial<DashboardStats>): Promise<Dashb
     body: JSON.stringify(stats),
   });
 
-  const result = await handleResponse<StatsUpdateResponse>(response);
+  const result = await handleApiResponse<StatsUpdateResponse>(response);
 
   if (!result.success || !result.data) {
     throw new Error(result.message || "Failed to update stats");

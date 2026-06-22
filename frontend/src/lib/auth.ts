@@ -72,14 +72,28 @@ export const authStorage = {
   },
 };
 
-async function handleResponse(response: Response): Promise<AuthResponse> {
+/**
+ * Shared API response handler that automatically calls logout()
+ * and redirects to /login when the backend returns HTTP 401.
+ * Use this in all API client files.
+ */
+export async function handleApiResponse<T>(response: Response): Promise<T> {
+  if (response.status === 401) {
+    logout(); // clears localStorage & redirects to /login
+    throw new Error("Session expired. Redirecting to login...");
+  }
+
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || "Authentication failed");
+    throw new Error(data.message || "Request failed");
   }
 
-  return data;
+  return data as T;
+}
+
+async function handleResponse(response: Response): Promise<AuthResponse> {
+  return handleApiResponse<AuthResponse>(response);
 }
 
 export async function login(credentials: LoginRequest): Promise<AuthResponse> {
